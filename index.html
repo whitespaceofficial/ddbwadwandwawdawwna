@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audio Chaining with Howler</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f0f0f0;
+      margin: 0;
+      flex-direction: column;
+    }
+    .timer {
+      font-size: 3rem;
+      margin-bottom: 20px;
+    }
+    #message {
+      font-size: 1.5rem;
+      color: green;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="timer" id="timerDisplay">01:00</div>
+  <div id="message"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.1/howler.min.js"></script>
+  <script>
+    const timerDisplay = document.getElementById('timerDisplay');
+    const message = document.getElementById('message');
+
+    let timeLeft = 60;  // Start with 60 seconds
+    const interval = 10;  // Voice prompt every 10 seconds
+    let timerInterval;
+
+    // Initialize audio files to play in sequence
+    const audio1 = new Howl({
+      src: ['https://tm.systemspace.network/unlink/stuff/nnintro.ogg'],  // Path to your first audio file
+      volume: 1.5,
+      onend: function() {
+        // When audio1 finishes, play audio2
+        audio2.play();
+      }
+    });
+
+    const audio2 = new Howl({
+      src: ['https://tm.systemspace.network/unlink/stuff/nnloop.ogg'],  // Path to your second audio file
+      volume: 1.5,
+      onend: function() {
+        // When audio2 finishes, repeat audio1
+        audio1.play();
+      }
+    });
+
+    // Start the sequence by playing audio1
+    audio1.play();
+
+    // Timer update function
+    function updateTimer() {
+      const minutes = Math.floor(timeLeft / 60);
+      const seconds = timeLeft % 60;
+      timerDisplay.textContent = `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+
+      // Check if it's time for a voice prompt
+      if (timeLeft % interval === 0 && timeLeft !== 0) {
+        const chain = secondsToSpeech(timeLeft);
+        chainSfx(chain);
+      }
+
+      // When the timer runs out
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        message.textContent = "Time's up!";
+        // You can add an end sound or animation here.
+      } else {
+        timeLeft--;
+      }
+    }
+
+    // Start the countdown timer
+    timerInterval = setInterval(updateTimer, 1000);
+
+    // Functions for speech
+
+    function chainSfx(chain) {
+      let el = chain.shift();
+
+      if (!el) { return; }
+
+      new Howl({
+        src: `https://tm.systemspace.link/unlink/stuff/voice/speech_${el}_en.ogg`,
+        autoplay: true,
+        volume: 1.5,
+        onend: function() {
+          chainSfx(chain);
+        }
+      });
+    }
+
+    function secondsToSpeech(secs) {
+      var minutes = Math.floor((secs % (60 * 60)) / 60);
+      var seconds = Math.floor(secs % 60);
+
+      if (minutes === 1) {
+        seconds += 60;
+        minutes--;
+      }
+
+      var chain = [];
+
+      if (minutes) {
+        chain.push(...chainForNumber(minutes));
+        chain.push('minutes');
+      }
+
+      if (seconds) {
+        chain.push(...chainForNumber(seconds));
+        chain.push('seconds');
+      }
+
+      return chain;
+    }
+
+    function chainForNumber(number) {
+      var orc = [];
+
+      while (true) {
+        if (number <= 20) {
+          orc = [number];
+          break;
+        }
+        if (number % 100 === 0) {
+          orc = [number];
+          break;
+        }
+        if (number < 100 && (number % 10 === 0)) {
+          orc = [number];
+          break;
+        }
+        if (number < 100 && (number % 25 === 0)) {
+          orc = [number];
+          break;
+        }
+        if (number > 100) {
+          orc.push(Math.floor(number - (number % 100)));
+        }
+        if (number > 10) {
+          orc.push(Math.floor((number % 100) - (number % 10)));
+        }
+        orc.push(Math.floor(number % 10));
+
+        break;
+      }
+
+      var chain = [];
+      orc.forEach((el) => {
+        if (el !== 0) {
+          chain.push('number_' + (el < 100 ? '0' : '') + (el < 10 ? '0' : '') + el);
+        }
+      });
+
+      return chain;
+    }
+  </script>
+</body>
+</html>
